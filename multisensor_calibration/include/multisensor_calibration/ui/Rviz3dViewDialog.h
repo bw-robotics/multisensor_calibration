@@ -43,6 +43,7 @@
 #include <rviz_common/display.hpp>
 #include <rviz_common/render_panel.hpp>
 #include <rviz_common/visualization_frame.hpp>
+#include <sensor_msgs/msg/point_cloud2.hpp>
 
 namespace multisensor_calibration
 {

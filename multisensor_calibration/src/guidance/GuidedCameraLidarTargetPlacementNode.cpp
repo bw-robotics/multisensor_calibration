@@ -14,7 +14,7 @@
 #include <cmath>
 
 // ROS
-#include <cv_bridge/cv_bridge.hpp>
+#include <cv_bridge/cv_bridge.h>
 #include <pcl_conversions/pcl_conversions.h>
 
 // PCL
@@ -534,7 +534,8 @@ bool GuidedCameraLidarTargetPlacementNode::initializeTimers()
 
     //--- initialize trigger to call routine to get intrinsic camera data
     pCamIntrinsicsTimer_ = this->create_wall_timer(
-      std::chrono::seconds(1), std::bind(&GuidedCameraLidarTargetPlacementNode::getCameraIntrinsics, this), nullptr, false);
+      std::chrono::seconds(1), std::bind(&GuidedCameraLidarTargetPlacementNode::getCameraIntrinsics, this), nullptr);
+    pCamIntrinsicsTimer_->cancel();
 
     return pCamIntrinsicsTimer_ != nullptr && baseRet;
 }
