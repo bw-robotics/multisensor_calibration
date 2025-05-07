@@ -509,12 +509,18 @@ bool GuidedCameraLidarTargetPlacementNode::initializeSubscribers()
     if (!isSuccessful)
         return false;
 
+    rmw_qos_profile_t qos_profile = rmw_qos_profile_default;
+    qos_profile.history           = RMW_QOS_POLICY_HISTORY_KEEP_LAST;
+    qos_profile.depth             = 5;
+    qos_profile.reliability       = RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
+    rclcpp::QoS qos(rclcpp::QoSInitialization::from_rmw(qos_profile), qos_profile);
+
     //--- initialize image subscriber
     pCameraImageSubsc_ = this->create_subscription<sensor_msgs::msg::Image>(
-      pCalibrationMetaData_->src_topic_name, 10,
+      pCalibrationMetaData_->src_topic_name, qos,
       std::bind(&GuidedCameraLidarTargetPlacementNode::onImageReceived,
                 this, std::placeholders::_1));
-
+                
     //--- initialize subscriber to target pose
     pTargetPoseSubsc_ = this->create_subscription<TargetBoardPose_Message_T>(
       calibratorNodeName_ + "/" +

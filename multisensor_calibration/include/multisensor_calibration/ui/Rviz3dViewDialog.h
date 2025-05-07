@@ -229,6 +229,11 @@ class Rviz3dViewDialog : public QDialog
     /// List of topic names on which the clouds holding the detected calibration targets are
     /// published.
     std::vector<std::string> targetCloudTopicNames_;
+
+    rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr cloud_publisher_;
+    rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr cloud_subscriber_;
+
+    void pointCloudCb(const sensor_msgs::msg::PointCloud2::ConstSharedPtr original_cloud_msg);
 };
 
 } // namespace multisensor_calibration
