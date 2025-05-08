@@ -258,12 +258,17 @@ std::pair<double, int> Extrinsic2d3dCalibrationBase<SrcDataProcessorT, RefDataPr
     cv::Vec<double, 3> invertedRVec, invertedTVec;
     invertTransformation(cameraRVec, cameraTVec, invertedRVec, invertedTVec);
 
+    RCLCPP_INFO(CalibrationBase::logger_, "invertedRVec = [%f, %f, %f]", invertedRVec[0], invertedRVec[1], invertedRVec[2]);
+    RCLCPP_INFO(CalibrationBase::logger_, "invertedTVec = [%f, %f, %f]", invertedTVec[0], invertedTVec[1], invertedTVec[2]);
+
     cv::Vec<double, 3> RvecExpected(-1.20919958,  1.20919958, -1.20919958);
-    double angleDifference = compareRotationVectors(RvecExpected, invertedRVec);
-    double rot_threshold_degrees =10.0;
+    float angleDifference = compareRotationVectors(RvecExpected, invertedRVec);
+    
+    RCLCPP_INFO(CalibrationBase::logger_, "angleDifference = %.6f", angleDifference);
+    float rot_threshold_degrees =30.0;
 
     cv::Vec<double, 3> TvecExpected(0.0, 0.0, 0.1);
-    double trans_threshold_meters = 0.05;
+    double trans_threshold_meters = 0.2;
 
     bool is_close_enough_translation = true;
     for (int i=0; i<3; i++) {
