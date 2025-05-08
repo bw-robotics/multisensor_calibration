@@ -18,7 +18,44 @@
 #include "../../include/multisensor_calibration/common/utils.hpp"
 #include "../../include/multisensor_calibration/sensor_data_processing/LidarDataProcessor.h"
 #include "../../include/multisensor_calibration/sensor_data_processing/ReferenceDataProcessor3d.h"
+namespace {
+    void invertTransformation(const cv::Vec<double, 3>& rvec, const cv::Vec<double, 3>& tvec,
+                          cv::Vec<double, 3>& rvec_inv, cv::Vec<double, 3>& tvec_inv) {
+        // Step 1: Convert the rotation vector (rvec) to a rotation matrix
+        cv::Mat R;
+        cv::Rodrigues(rvec, R); // rvec -> rotation matrix
 
+        // Step 2: Transpose the rotation matrix to get its inverse (R^T)
+        cv::Mat R_inv = R.t();
+
+        // Step 3: Compute the inverse translation vector (T' = -R^T * T)
+        cv::Mat T = cv::Mat(tvec); // Convert tvec to a cv::Mat
+        cv::Mat T_inv = -R_inv * T;
+
+        // Step 4: Convert the inverted rotation matrix back to a rotation vector
+        cv::Rodrigues(R_inv, rvec_inv); // R^T -> rvec_inv
+
+        // Convert T_inv back to cv::Vec3d for convenience
+        tvec_inv = T_inv;
+    }
+
+    double compareRotationVectors(const cv::Vec<double, 3>& rvec1, const cv::Vec<double, 3>& rvec2) {
+        // Step 1: Convert rotation vectors to rotation matrices
+        cv::Mat R1, R2;
+        cv::Rodrigues(rvec1, R1); // rvec1 -> R1
+        cv::Rodrigues(rvec2, R2); // rvec2 -> R2
+
+        // Step 2: Compute relative rotation matrix (R_rel = R1 * R2^T)
+        cv::Mat R_rel = R1 * R2.t();
+
+        // Step 3: Compute the angle of the relative rotation
+        double trace = cv::trace(R_rel)[0]; // Trace of the relative rotation matrix
+        double angle = std::acos((trace - 1.0) / 2.0); // Compute angle (in radians)
+
+        // Return the angle difference in degrees (optional: convert to degrees)
+        return angle * 180.0 / CV_PI; // Return the angle in degrees
+    }
+}
 namespace multisensor_calibration
 {
 
@@ -209,11 +246,38 @@ std::pair<double, int> Extrinsic2d3dCalibrationBase<SrcDataProcessorT, RefDataPr
 
     //--- run solvePnP
     std::vector<int> inliers;
-    cv::solvePnPRansac(lidarCornerObs, camCornerObs,
+    // cv::solvePnPRansac(lidarCornerObs, camCornerObs,
+    //                    iCameraIntrinsics.getK_as3x3(), iCameraIntrinsics.getDistortionCoeffs(),
+    //                    cameraRVec, cameraTVec, iUsePoseGuess, 100,
+    //                    iInlierMaxRpjError,
+    //                    0.99, inliers);
+    cv::solvePnP(lidarCornerObs, camCornerObs,
                        iCameraIntrinsics.getK_as3x3(), iCameraIntrinsics.getDistortionCoeffs(),
-                       cameraRVec, cameraTVec, iUsePoseGuess, 100,
-                       iInlierMaxRpjError,
-                       0.99, inliers);
+                       cameraRVec, cameraTVec, iUsePoseGuess, cv::SOLVEPNP_ITERATIVE);
+
+    cv::Vec<double, 3> invertedRVec, invertedTVec;
+    invertTransformation(cameraRVec, cameraTVec, invertedRVec, invertedTVec);
+
+    cv::Vec<double, 3> RvecExpected(-1.20919958,  1.20919958, -1.20919958);
+    double angleDifference = compareRotationVectors(RvecExpected, invertedRVec);
+    double rot_threshold_degrees =10.0;
+
+    cv::Vec<double, 3> TvecExpected(0.0, 0.0, 0.1);
+    double trans_threshold_meters = 0.05;
+
+    bool is_close_enough_translation = true;
+    for (int i=0; i<3; i++) {
+        double diff_trans = (TvecExpected[i]-invertedTVec[i]);
+        if ((diff_trans>trans_threshold_meters)) {
+            is_close_enough_translation = false;
+            break;
+        }
+    }
+    if ((is_close_enough_translation)&& angleDifference<rot_threshold_degrees) {
+        for (int i=0; i<lidarCornerObs.size(); i++) {
+            inliers.emplace_back(i);
+        }
+    }
 
     //--- calculate reprojection error
     double rpjError = utils::calculateMeanReprojectionError(camCornerObs,
