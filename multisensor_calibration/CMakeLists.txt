@@ -100,6 +100,7 @@ find_package(multisensor_calibration_interface REQUIRED)
 find_package(OpenCV REQUIRED COMPONENTS
     core
     calib3d
+    objdetect
 )
 find_package(small_gicp_vendor REQUIRED)
 find_package(small_gicp REQUIRED)

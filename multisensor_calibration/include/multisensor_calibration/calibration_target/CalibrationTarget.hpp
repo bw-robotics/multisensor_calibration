@@ -99,7 +99,8 @@ struct CalibrationTarget
     void createArUcoBoard()
     {
         //--- create ArUco dictionary
-        pArucoDictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
+        cv::aruco::Dictionary dict = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
+        pArucoDictionary = cv::makePtr<cv::aruco::Dictionary>(dict);
 
         //--- create arUco board
 
@@ -123,8 +124,8 @@ struct CalibrationTarget
 
         try
         {
-            pArucoBoard = cv::aruco::Board::create(boardCorners, pArucoDictionary,
-                                                   markerIds);
+            pArucoBoard = cv::makePtr<cv::aruco::Board>(boardCorners, *pArucoDictionary,
+                                                        markerIds);
         }
         catch (cv::Exception& ex)
         {
